@@ -1,0 +1,65 @@
+const initialStateAcc = {
+  balance: 0,
+  loan: 0,
+  loanPurpose: "",
+  isLoading:false
+};
+
+export default function accountReducer(state = initialStateAcc, action) {
+  switch (action.type) {
+    case "account/deposit":
+      return { ...state, balance: state.balance + action.payload ,isLoading:false};
+
+    case "account/withdraw":
+      return { ...state, balance: state.balance - action.payload };
+    case "account/requestLoan":
+      if (state.account?.loan > 0) return state;
+      return {
+        ...state,
+        balance: state.balance + action.payload.amount,
+        loanPurpose: action.payload.loanPurpose,
+        loan: action.payload.amount,
+      };
+    case "account/payLoan":
+      console.log(state, action, "payloan");
+
+      return {
+        ...state,
+        loan: 0,
+        loanPurpose: "",
+        balance: state.balance - state.loan,
+      };
+    case "account/convertingCurrency":
+        return {...state, isLoading:true}
+
+    default:
+      return state;
+  }
+}
+
+export function deposit(amount, currency) {
+  console.log(currency);
+
+  if (currency === "USD") {return { type: "account/deposit", payload: amount } }else{
+      return async function (dispatch,getState ) {
+          dispatch({type:"account/convertingCurrency"})
+          const res = await fetch(
+              `https://api.frankfurter.dev/v1/latest?amount=${amount}&base=${currency}&symbols=USD`
+            );
+            const data = await res.json();
+            const converted = data.rates.USD;
+            console.log(data, converted);
+            
+            dispatch({ type: "account/deposit", payload: converted });
+        };
+    }
+}
+export function withdrawl(amount) {
+  return { type: "account/withdraw", payload: amount };
+}
+export function requestLoan(amount, loanPurpose) {
+  return { type: "account/requestLoan", payload: { amount, loanPurpose } };
+}
+export function payLoan() {
+  return { type: "account/payLoan" };
+}
