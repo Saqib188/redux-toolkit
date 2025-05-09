@@ -19,10 +19,7 @@ console.log(depositAmount)
 
   function handleDeposit() {
     if(!depositAmount) return ;
-    // dispatch(deposit({ amount: 100, currency: "EUR" }));
-    console.log(currency," currency before dispatch deposit",depositAmount ,"amount befor dispatch" );
     dispatch(deposit({amount : depositAmount,currency}))
-    // dispatch(deposit(depositAmount))
     setDepositAmount("")
     setCurrency("")
   }
