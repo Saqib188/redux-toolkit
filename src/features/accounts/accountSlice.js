@@ -1,123 +1,121 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   balance: 0,
   loan: 0,
   loanPurpose: "",
-  isLoading:false
+  isError: false,
+  isLoading: false,
+  error: "",
 };
-const accountSlice = createSlice({
-    name : "account",
-    initialState,
-    reducers:{
-        deposit(state,action){
-            state.balance += action.payload
-            state.isLoading= false 
-        },
-        withdrawl(state,action){
-            state.balance -= action.payload
-        },
-        requestLoan:{
-            prepare(amount,purpose){
-return {payload:{amount,purpose}}
-            },
-            reducer(state,action){
-            state.balance += action.payload.amount
-            state.loan += action.payload.amount
-            state.loanPurpose = action.payload.purpose
-        }},
-        payLoan(state){
-            state.balance -= state.loan;
-            state.loan = 0;
-            state.loanPurpose = "" 
-        },
-        convertingCurrency(state){
-state.isLoading= true;
-        }
-    }
-
-})
-
-
-export const {withdrawl,requestLoan,payLoan} = accountSlice.actions;
-export function deposit(amount, currency) {
-    console.log(currency);
-  
-    if (currency === "USD") {return { type: "account/deposit", payload: amount } }else{
-        return async function (dispatch,getState ) {
-            dispatch({type:"account/convertingCurrency"})
-            const res = await fetch(
-                `https://api.frankfurter.dev/v1/latest?amount=${amount}&base=${currency}&symbols=USD`
-              );
-              const data = await res.json();
-              const converted = data.rates.USD;
-              console.log(data, converted);
-              
-              dispatch({ type: "account/deposit", payload: converted });
-          };
-      }
-  }
-export default accountSlice.reducer;
-
 
 
 /* 
-export default function accountReducer(state = initialStateAcc, action) {
-  switch (action.type) {
-    case "account/deposit":
-      return { ...state, balance: state.balance + action.payload ,isLoading:false};
-
-    case "account/withdraw":
-      return { ...state, balance: state.balance - action.payload };
-    case "account/requestLoan":
-      if (state.account?.loan > 0) return state;
-      return {
-        ...state,
-        balance: state.balance + action.payload.amount,
-        loanPurpose: action.payload.loanPurpose,
-        loan: action.payload.amount,
-      };
-    case "account/payLoan":
-      console.log(state, action, "payloan");
-
-      return {
-        ...state,
-        loan: 0,
-        loanPurpose: "",
-        balance: state.balance - state.loan,
-      };
-    case "account/convertingCurrency":
-        return {...state, isLoading:true}
-
-    default:
-      return state;
-  }
-}
-
-export function deposit(amount, currency) {
-  console.log(currency);
-
-  if (currency === "USD") {return { type: "account/deposit", payload: amount } }else{
-      return async function (dispatch,getState ) {
-          dispatch({type:"account/convertingCurrency"})
-          const res = await fetch(
-              `https://api.frankfurter.dev/v1/latest?amount=${amount}&base=${currency}&symbols=USD`
-            );
-            const data = await res.json();
-            const converted = data.rates.USD;
-            console.log(data, converted);
-            
-            dispatch({ type: "account/deposit", payload: converted });
-        };
+// grok code 09.05.2025
+export const deposit = createAsyncThunk(
+  "account/deposit",
+  async (arg, { rejectWithValue }) => {
+    const { amount, currency } = arg || {}; // Safely destructure
+    console.log("Thunk called with arg:", arg); // Debug
+    try {
+      console.log(amount, "deposit amount argu", currency, "currency argu");
+      if (!amount || isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
+      if (!currency) throw new Error("Currency is required");
+      if (currency === "USD") return amount;
+      const res = await fetch(
+        `https://api.frankfurter.app/latest?amount=${amount}&from=${currency}&to=USD`
+      );
+      if (!res.ok) throw new Error("Failed to fetch exchange rate");
+      const data = await res.json();
+      if (!data.rates?.USD) throw new Error("USD rate not available");
+      console.log(data);
+      return data.rates.USD;
+    } catch (error) {
+      console.error("Deposit error:", error.message);
+      return rejectWithValue(error.message);
     }
-}
-export function withdrawl(amount) {
-  return { type: "account/withdraw", payload: amount };
-}
-export function requestLoan(amount, loanPurpose) {
-  return { type: "account/requestLoan", payload: { amount, loanPurpose } };
-}
-export function payLoan() {
-  return { type: "account/payLoan" };
-}
- */
+  }
+); */
+
+export const deposit = createAsyncThunk(
+
+
+  "account/deposit",
+  async function ({amount, currency},thunkAPI) {
+
+    try {
+      if (currency === "USD") {return amount;}
+      
+    console.log(currency);
+    
+    const res = await fetch(
+      `https://api.frankfurter.dev/v1/latest?amount=${amount}&base=${currency}&symbols=USD`
+    );
+    console.log(res);
+    
+    if (!res.ok) {throw new Error("Failed to convert")}
+    const data = await res.json();
+
+    console.log(data);
+
+    return data.rates?.USD;
+  
+
+      
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  } 
+);
+
+
+
+const accountSlice = createSlice({
+  name: "account",
+  initialState,
+  reducers: {
+    withdrawl(state, action) {
+      state.balance -= action.payload;
+    },
+    requestLoan: {
+      prepare(amount, purpose) {
+        return { payload: { amount, purpose } };
+      },
+      reducer(state, action) {
+        state.balance += action.payload.amount;
+        state.loan += action.payload.amount;
+        state.loanPurpose = action.payload.purpose;
+      },
+    },
+    payLoan(state) {
+      state.balance -= state.loan;
+      state.loan = 0;
+      state.loanPurpose = "";
+     },
+  },
+  extraReducers: (builder) =>
+    builder
+      .addCase(deposit.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.error = "";
+
+      })
+      .addCase(deposit.fulfilled, (state, action) => {
+        state.balance += action.payload;
+        state.isLoading = false
+      })
+      .addCase(deposit.rejected, (state, action) => {
+        state.isError = true
+        state.error = action.payload|| "Deposit Failed"
+        console.log((action.payload,"rejected action "));
+        state.isLoading= false
+      }),  
+});
+
+
+export const { withdrawl, requestLoan, payLoan } = accountSlice.actions;
+
+export default accountSlice.reducer;
+
+

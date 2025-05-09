@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deposit,payLoan,requestLoan,withdrawl } from "./accountSlice";
 
-
 function AccountOperations() {
 const {loan:currentLoan,loanPurpose:currentLoanPurpose,balance:currentBalance,isLoading} = useSelector(store=>store.account)
 console.log(currentLoanPurpose);
@@ -14,15 +13,18 @@ console.log(currentLoanPurpose);
   const [loanPurpose, setLoanPurpose] = useState("");
   const [currency, setCurrency] = useState("USD");
 
-
+console.log(depositAmount)
   const dispatch = useDispatch()
+  // console.log(dispatch(deposit({depositAmount,currency})))
+
   function handleDeposit() {
     if(!depositAmount) return ;
-    // console.log(currency,"before dispatch deposit");
-    dispatch(deposit(depositAmount,currency))
+    // dispatch(deposit({ amount: 100, currency: "EUR" }));
+    console.log(currency," currency before dispatch deposit",depositAmount ,"amount befor dispatch" );
+    dispatch(deposit({amount : depositAmount,currency}))
     // dispatch(deposit(depositAmount))
     setDepositAmount("")
-    setCurrency("USD")
+    setCurrency("")
   }
 
   function handleWithdrawal() {

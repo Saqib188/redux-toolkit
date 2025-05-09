@@ -1,8 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import reducer from "../accounts/accountSlice";
 
 const initialState = {
-  fullName: "",
+  fullName: "saqib",
   nationalId: "",
   createdAt: "",
 };
